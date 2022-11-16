@@ -9,11 +9,11 @@ api_instance = client.CoreV1Api()
 def write_data(list_nodes):
     with open('./list_nodes.txt', 'w') as f:
         f.write(json.dumps(list_nodes))
-def read_data() -> list:
+def read_data():
     with open('./list_nodes.txt', 'r') as f:
         list_nodes = json.load(f)
     return list_nodes
-def get_list_nodes() -> (bool, list):
+def get_list_nodes():
     list_nodes = read_data()
     new_list_nodes = {"master": {}, "worker": {}}
     try:
@@ -27,11 +27,10 @@ def get_list_nodes() -> (bool, list):
                 new_list_nodes["worker"][key] = value
         if new_list_nodes != list_nodes:
             write_data(new_list_nodes)
-            return True, new_list_nodes
-        return False, list_nodes
+            return 1, new_list_nodes
+        return 0, list_nodes
     except Exception as e:
         print(e)
-    return False, list_nodes
 
 def update_config_file():
     global urls
@@ -46,12 +45,10 @@ def restart_telegraf():
     global urls
     namespace = os.getenv("NAMESPACE")
     cmd = "kill -9 $(pgrep -f 'telegraf')"
-    #cmd1 = "cp ./telegraf_template.conf ./telegraf.conf"
     cmd1 = "telegraf --config ./telegraf.conf &"
     check, list_nodes = get_list_nodes()
     if check:
         os.system(cmd)
-        #os.system(cmd1)
         urls = ["http://kube-state-metrics.{}:8080/metrics".format(namespace),
                 "http://ingress-nginx-controller-metrics.ingress-nginx:10254/metrics"]
         for node_name in list_nodes["master"].keys():
